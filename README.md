@@ -2,9 +2,12 @@
 
 fmcui is a beautiful, highly-performant chat interface built specifically to interact with **Apple Foundation Models**. It brings native-feeling chat experiences directly to your desktop.
 
-<img width="1002" height="712" alt="Screenshot 2026-09-22 at 12 46 18 AM" src="https://github.com/user-attachments/assets/8c35b1bf-534b-44b5-bdcc-b2b8a530a2aa" />
-<img width="997" height="722" alt="Screenshot 2026-09-22 at 12 46 03 AM" src="https://github.com/user-attachments/assets/af346df1-cc80-4bf6-8dc4-ae31d89e405b" />
+<div align="center">
+  <img width="48%" alt="Screenshot 2026-09-22 at 12 46 18 AM" src="https://github.com/user-attachments/assets/8c35b1bf-534b-44b5-bdcc-b2b8a530a2aa" />
+  <img width="48%" alt="Screenshot 2026-09-22 at 12 46 03 AM" src="https://github.com/user-attachments/assets/af346df1-cc80-4bf6-8dc4-ae31d89e405b" />
+</div>
 
+🌍 **[Visit the fmcui Landing Page](https://suyash-03.github.io/fmcui-product-portfolio/)**
 
 ## Requirements
 
