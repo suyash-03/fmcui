@@ -16,7 +16,7 @@ export function Titlebar({ serverStatus, onNewChat, onToggleSettings }: Titlebar
 
   return (
     <header className="titlebar">
-      <span className="titlebar-title">FM Chat</span>
+      <span className="titlebar-title">fmcui</span>
 
       <div className="titlebar-status">
         <span className={`titlebar-status-dot ${serverStatus}`} />

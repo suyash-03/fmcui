@@ -53,7 +53,7 @@ html, body, #root {
 
 body {
   font-family: var(--font-sans);
-  background: var(--bg-primary);
+  background: transparent;
   color: var(--text-primary);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
@@ -179,7 +179,7 @@ body {
   flex: 1;
   display: flex;
   flex-direction: column;
-  background: var(--bg-primary);
+  background: #000000;
 }
 
 /* ── Titlebar (Main Area) ──────────────────────────────────────────── */
@@ -301,19 +301,12 @@ body {
   text-align: center;
 }
 
-.empty-state-icon {
-  width: 64px;
-  height: 64px;
-  border-radius: 18px;
-  background: linear-gradient(135deg, #6E6CE8 0%, #9D8CFF 50%, #B88CF0 100%);
-  display: flex;
-  align-items: center;
-  justify-content: center;
+.empty-state-icon-img {
+  width: 72px;
+  height: 72px;
   margin-bottom: 24px;
-  box-shadow:
-    0 8px 32px rgba(110, 108, 232, 0.25),
-    0 2px 8px rgba(110, 108, 232, 0.15);
-  animation: iconFloat 6s ease-in-out infinite;
+  border-radius: 16px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
 }
 
 .empty-state-title {

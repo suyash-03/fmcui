@@ -2,7 +2,7 @@ import { useRef, useEffect } from 'react'
 import { ChatMessage } from '../api'
 import { MessageBubble } from './MessageBubble'
 import { InputBar } from './InputBar'
-import { Cpu, WifiOff, AlertCircle } from 'lucide-react'
+import { WifiOff, AlertCircle } from 'lucide-react'
 
 interface ChatViewProps {
   messages: ChatMessage[]
@@ -111,9 +111,7 @@ export function ChatView({
       >
         {messages.length === 0 ? (
           <div className="empty-state">
-            <div className="empty-state-icon">
-              <Cpu size={28} color="white" />
-            </div>
+            <img src="/icon.png" alt="App Icon" className="empty-state-icon-img" />
             <h1 className="empty-state-title">Apple Foundation Models</h1>
             <p className="empty-state-subtitle">Running privately on your device</p>
             <div className="example-prompts">

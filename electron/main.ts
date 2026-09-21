@@ -5,6 +5,8 @@ import * as net from 'net'
 import * as os from 'os'
 import { initStoreIpc } from './store'
 
+app.setName('fmcui')
+
 let mainWindow: BrowserWindow | null = null
 let fmProcess: ChildProcess | null = null
 let serverPort: number | null = null
