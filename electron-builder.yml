@@ -1,0 +1,23 @@
+appId: com.fmchat.app
+productName: FM Chat
+directories:
+  buildResources: build
+  output: release/${version}
+files:
+  - dist
+  - dist-electron
+mac:
+  target:
+    - dmg
+    - zip
+  category: public.app-category.productivity
+  artifactName: ${productName}-${version}-${arch}.${ext}
+dmg:
+  contents:
+    - x: 410
+      y: 150
+      type: link
+      path: /Applications
+    - x: 130
+      y: 150
+      type: file
