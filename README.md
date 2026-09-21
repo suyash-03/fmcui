@@ -1,10 +1,5 @@
 # fmcui - Apple Foundational Models Chat UI
 
-<div align="center">
-  <img src="assets/empty-state.png" width="48%" />
-  <img src="assets/chat-interface.png" width="48%" />
-</div>
-
 fmcui is a beautiful, highly-performant chat interface built specifically to interact with **Apple Foundation Models**. It brings native-feeling chat experiences directly to your desktop.
 
 ## Requirements
