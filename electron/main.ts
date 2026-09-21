@@ -139,6 +139,7 @@ function createWindow(): void {
     visualEffectState: 'followWindow',
     backgroundColor: '#00000000', // Fully transparent to let vibrancy show through
     transparent: true,
+    icon: path.join(__dirname, process.env.VITE_DEV_SERVER_URL ? '../public/icon.png' : '../dist/icon.png'),
     show: false,
     webPreferences: {
       preload: path.join(__dirname, 'preload.js'),
@@ -256,6 +257,10 @@ app.whenReady().then(async () => {
     )
     app.quit()
     return
+  }
+
+  if (process.platform === 'darwin') {
+    app.dock.setIcon(path.join(__dirname, process.env.VITE_DEV_SERVER_URL ? '../public/icon.png' : '../dist/icon.png'))
   }
 
   initStoreIpc()
