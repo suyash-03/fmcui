@@ -111,7 +111,7 @@ export function ChatView({
       >
         {messages.length === 0 ? (
           <div className="empty-state">
-            <img src="/icon.png" alt="App Icon" className="empty-state-icon-img" />
+            <img src="./icon.png" alt="App Icon" className="empty-state-icon-img" />
             <h1 className="empty-state-title">Apple Foundation Models</h1>
             <p className="empty-state-subtitle">Running privately on your device</p>
             <div className="example-prompts">

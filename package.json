@@ -1,5 +1,5 @@
 {
-  "name": "fm-chat",
+  "name": "fmcui",
   "version": "1.0.0",
   "description": "A beautiful chat interface for Apple Foundation Models",
   "main": "dist-electron/main.js",

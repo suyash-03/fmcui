@@ -152,7 +152,7 @@ function createWindow(): void {
 
   mainWindow.once('ready-to-show', () => {
     mainWindow?.show()
-    mainWindow?.webContents.openDevTools()
+    // mainWindow?.webContents.openDevTools()
   })
 
   // Forward renderer console logs to the main terminal

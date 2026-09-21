@@ -1,5 +1,5 @@
-appId: com.fmchat.app
-productName: FM Chat
+appId: com.fmcui.app
+productName: fmcui
 directories:
   buildResources: build
   output: release/${version}
