@@ -1,9 +1,11 @@
+import { lazy, Suspense } from 'react'
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 import { ChatMessage } from '../api'
-import { CodeBlock } from './CodeBlock'
 
-import { Cpu } from 'lucide-react'
+import { Sparkles } from 'lucide-react'
+
+const CodeBlock = lazy(() => import('./CodeBlock').then(module => ({ default: module.CodeBlock })))
 
 interface MessageBubbleProps {
   message: ChatMessage
@@ -14,7 +16,7 @@ export function MessageBubble({ message, isStreaming }: MessageBubbleProps) {
   if (message.role === 'user') {
     return (
       <div className="message message-user">
-        <div className="message-user-content">{message.content}</div>
+        <div className="message-user-stack"><span className="message-label">You</span><div className="message-user-content">{message.content}</div></div>
       </div>
     )
   }
@@ -22,9 +24,9 @@ export function MessageBubble({ message, isStreaming }: MessageBubbleProps) {
   return (
     <div className="message message-assistant">
       <div className="message-assistant-avatar">
-        <Cpu size={16} />
+        <Sparkles size={18} />
       </div>
-      <div className="message-assistant-content">
+      <div className="message-assistant-stack"><span className="message-label">Foundation Models</span><div className="message-assistant-content">
         {message.content ? (
           <ReactMarkdown
             remarkPlugins={[remarkGfm]}
@@ -41,10 +43,9 @@ export function MessageBubble({ message, isStreaming }: MessageBubbleProps) {
                 // Block code: has a language class OR contains newlines
                 if (match || codeStr.includes('\n')) {
                   return (
-                    <CodeBlock
-                      language={match?.[1] || ''}
-                      code={codeStr}
-                    />
+                    <Suspense fallback={<pre className="code-loading">{codeStr}</pre>}>
+                      <CodeBlock language={match?.[1] || ''} code={codeStr} />
+                    </Suspense>
                   )
                 }
 
@@ -57,7 +58,7 @@ export function MessageBubble({ message, isStreaming }: MessageBubbleProps) {
           </ReactMarkdown>
         ) : null}
         {isStreaming && <span className="streaming-cursor" />}
-      </div>
+      </div></div>
     </div>
   )
 }

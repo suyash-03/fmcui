@@ -1,5 +1,5 @@
 import { useState, useCallback, useRef, useEffect } from 'react'
-import { ChatMessage, ChatSession, streamChat } from '../api'
+import { ChatMessage, ChatSession, ModelId, streamChat } from '../api'
 
 export function useChat(serverPort: number | null) {
   const [chats, setChats] = useState<ChatSession[]>([])
@@ -80,7 +80,7 @@ export function useChat(serverPort: number | null) {
   }
 
   const sendMessage = useCallback(
-    async (content: string, systemInstructions?: string) => {
+    async (content: string, model: ModelId, systemInstructions?: string) => {
       if (!serverPort) return
 
       const userMessage: ChatMessage = { role: 'user', content }
@@ -101,7 +101,7 @@ export function useChat(serverPort: number | null) {
         apiMessages.push(...history)
 
         let accumulated = ''
-        for await (const token of streamChat(serverPort, apiMessages, controller.signal)) {
+        for await (const token of streamChat(serverPort, apiMessages, model, controller.signal)) {
           accumulated += token
           setMessages(prev => {
             const updated = [...prev]
@@ -111,19 +111,15 @@ export function useChat(serverPort: number | null) {
         }
         
         // Sync to disk once complete
-        const finalMessages = [...history, { role: 'assistant' as const, content: accumulated }]
+        const finalMessages = accumulated ? [...history, { role: 'assistant' as const, content: accumulated }] : history
+        setMessages(finalMessages)
         await syncChatToDisk(finalMessages)
 
       } catch (err: any) {
         if (err.name !== 'AbortError') {
           setError(err.message || 'Failed to get response')
-          setMessages(prev => {
-            const last = prev[prev.length - 1]
-            if (last?.role === 'assistant' && !last.content) {
-              return prev.slice(0, -1)
-            }
-            return prev
-          })
+          setMessages(history)
+          await syncChatToDisk(history)
         }
       } finally {
         setIsStreaming(false)
@@ -137,7 +133,9 @@ export function useChat(serverPort: number | null) {
     abortRef.current?.abort()
     // Sync whatever was generated so far
     if (messagesRef.current.length > 0) {
-      syncChatToDisk(messagesRef.current)
+      const current = messagesRef.current.filter(message => message.role !== 'assistant' || message.content)
+      setMessages(current)
+      void syncChatToDisk(current)
     }
   }, [])
 

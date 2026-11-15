@@ -1,14 +1,16 @@
 import { useState, useRef, useCallback, useEffect, KeyboardEvent } from 'react'
-import { ArrowUp, Square } from 'lucide-react'
+import { Send, Square } from 'lucide-react'
+import { ModelId } from '../api'
 
 interface InputBarProps {
   onSend: (content: string) => void
   onStop: () => void
   isStreaming: boolean
   disabled: boolean
+  model: ModelId
 }
 
-export function InputBar({ onSend, onStop, isStreaming, disabled }: InputBarProps) {
+export function InputBar({ onSend, onStop, isStreaming, disabled, model }: InputBarProps) {
   const [value, setValue] = useState('')
   const textareaRef = useRef<HTMLTextAreaElement>(null)
 
@@ -85,12 +87,12 @@ export function InputBar({ onSend, onStop, isStreaming, disabled }: InputBarProp
               title="Send message (Enter)"
               aria-label="Send message"
             >
-              <ArrowUp size={18} strokeWidth={2.5} />
+              <Send size={19} strokeWidth={1.7} />
             </button>
           )}
         </div>
         <p className="input-hint">
-          Apple Foundation Model · Running on-device · Enter to send, Shift+Enter for new line
+          {model === 'pcc' ? 'Private Cloud Compute · Sent to Apple servers · Daily limits may apply' : 'On-device model · Your prompts stay on this Mac'} · Enter to send, Shift+Enter for new line
         </p>
       </div>
     </div>

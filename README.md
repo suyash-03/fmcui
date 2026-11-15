@@ -1,41 +1,33 @@
-# fmcui - Apple Foundational Models Chat UI
+# fmcui
 
-fmcui is a beautiful, highly-performant chat interface built specifically to interact with **Apple Foundation Models**. It brings native-feeling chat experiences directly to your desktop.
+A macOS chat app for Apple Foundation Models, built with Electron, React, and Vite. It starts the system `fm serve` process on a loopback port and keeps conversation history in the app's local data directory. [View the project page](https://suyash-03.github.io/fmcui-product-portfolio/).
 
-<div align="center">
-  <img width="48%" alt="Screenshot 2026-09-22 at 12 46 18 AM" src="https://github.com/user-attachments/assets/8c35b1bf-534b-44b5-bdcc-b2b8a530a2aa" />
-  <img width="48%" alt="Screenshot 2026-09-22 at 12 46 03 AM" src="https://github.com/user-attachments/assets/af346df1-cc80-4bf6-8dc4-ae31d89e405b" />
-</div>
+## Screenshots
 
-🌍 **[Visit the fmcui Landing Page](https://suyash-03.github.io/fmcui-product-portfolio/)**
+**Conversation**
+
+<img src="docs/screenshots/app-screenshot.png" alt="fmcui conversation with a Swift answer and code block" width="900">
+
+**New chat**
+
+<img src="docs/screenshots/app-welcome.png" alt="fmcui welcome screen with suggested questions" width="900">
 
 ## Requirements
 
-> [!WARNING]
-> **macOS 27 (Golden Gate)** or above is strictly required for this application to function. 
-> The underlying architecture relies heavily on system-level APIs introduced in macOS 27 to communicate optimally with Apple Foundation Models.
+- macOS 27 or later with Apple Intelligence available and the `fm` CLI installed.
+- Accept the CLI license if prompted: `sudo fm license`.
 
-## Architecture
+## Models
 
-fmcui is built using a modern desktop web architecture:
-- **Frontend**: React + TypeScript + Vite, styled for maximum performance and native aesthetics.
-- **Backend/Desktop Integration**: Electron, ensuring deep integration with macOS 27 windowing and system status APIs.
-- **Model Server**: Connects to the local `Apple Foundation Models Serve` endpoint running on loopback (`http://127.0.0.1:62437`), ensuring all chats remain completely local and private.
+**On device** is the default. Prompts stay on your Mac and use the `system` model. **Private Cloud** becomes selectable when the running `fm serve` reports the `pcc` model as available. Selecting it sends the conversation to Apple's Private Cloud Compute, which supports more context and reasoning but needs network access and has daily usage limits. The app never silently changes models or sends an on-device conversation to the cloud.
 
-## Benefits
+Private Cloud Compute availability depends on the OS, device, region, Apple Intelligence status, and Apple's access rules. Apple documents the [Private Cloud Compute model](https://developer.apple.com/documentation/foundationmodels/adding-server-side-intelligence-with-private-cloud-compute) and [access requirements](https://developer.apple.com/private-cloud-compute/).
 
-- **100% Local & Private**: No data leaves your machine. Your chats with the foundation model run entirely on-device.
-- **Native macOS Feel**: Designed to blend seamlessly with the aesthetic of macOS Golden Gate, using translucent window treatments and native controls.
-- **Lightning Fast Response**: Optimized streaming architecture means you see tokens as they are generated with virtually zero latency.
-- **System Resource Monitoring**: Keep an eye on system resources and Apple Silicon Neural Engine utilization in real time.
+## Run locally
 
-## Running Locally
+```bash
+npm install
+npm run dev
+```
 
-1. Install dependencies:
-   ```bash
-   npm install
-   ```
-2. Start the development server:
-   ```bash
-   npm run dev
-   ```
+`npm run build` produces the renderer and Electron bundles. Browser-only development expects an `fm serve` process on port 8462 for the Vite proxy. The packaged Electron app starts its own server on a free loopback port.

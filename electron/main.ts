@@ -11,6 +11,33 @@ let mainWindow: BrowserWindow | null = null
 let fmProcess: ChildProcess | null = null
 let serverPort: number | null = null
 let serverStatus: 'starting' | 'running' | 'error' | 'not-found' = 'starting'
+type ModelId = 'system' | 'pcc'
+type ModelState = { available: boolean; reason?: string }
+let modelStates: Record<ModelId, ModelState> = {
+  system: { available: true },
+  pcc: { available: false, reason: 'Private Cloud Compute is not available from this fm installation.' },
+}
+const activeRequests = new Map<string, AbortController>()
+
+async function refreshModels(port: number): Promise<void> {
+  try {
+    const response = await fetch(`http://127.0.0.1:${port}/v1/models`)
+    if (!response.ok) return
+    const payload = await response.json() as { data?: Array<{ id: string; available?: boolean; reason?: string }>; models?: Array<{ id?: string; name?: string; available?: boolean; reason?: string }> }
+    const models = payload.data ?? payload.models ?? []
+    const pcc = models.find(model => (model.id ?? ('name' in model ? model.name : undefined)) === 'pcc')
+    modelStates = {
+      system: { available: true },
+      pcc: pcc ? { available: pcc.available !== false, reason: pcc.reason } : {
+        available: false,
+        reason: 'This version of fm does not offer Private Cloud Compute. It may also require Apple eligibility and access.',
+      },
+    }
+    mainWindow?.webContents.send('models-changed', modelStates)
+  } catch (error) {
+    console.error('[fm-chat] Could not read available models:', error)
+  }
+}
 
 // ── Port Discovery ──────────────────────────────────────────────────
 function findFreePort(): Promise<number> {
@@ -51,6 +78,7 @@ function isFmAvailable(): boolean {
 
 // ── Start fm serve ──────────────────────────────────────────────────
 async function startFmServe(): Promise<void> {
+  modelStates.pcc = { available: false, reason: 'Checking Private Cloud Compute availability…' }
   if (!isFmAvailable()) {
     serverStatus = 'not-found'
     notifyRenderer()
@@ -95,6 +123,7 @@ async function startFmServe(): Promise<void> {
     if (healthy) {
       console.log(`[fm-chat] fm serve is healthy on port ${serverPort}`)
       serverStatus = 'running'
+      await refreshModels(serverPort)
     } else {
       console.error('[fm-chat] fm serve health check timed out')
       serverStatus = 'error'
@@ -109,16 +138,19 @@ async function startFmServe(): Promise<void> {
 
 // ── Stop fm serve ───────────────────────────────────────────────────
 function stopFmServe(): void {
+  activeRequests.forEach(controller => controller.abort())
+  activeRequests.clear()
   if (fmProcess) {
+    const processToStop = fmProcess
     console.log('[fm-chat] Stopping fm serve...')
-    fmProcess.kill('SIGTERM')
+    processToStop.kill('SIGTERM')
     const forceKillTimer = setTimeout(() => {
-      if (fmProcess && !fmProcess.killed) {
+      if (processToStop.exitCode === null) {
         console.log('[fm-chat] Force killing fm serve...')
-        fmProcess.kill('SIGKILL')
+        processToStop.kill('SIGKILL')
       }
     }, 5000)
-    fmProcess.on('exit', () => clearTimeout(forceKillTimer))
+    processToStop.on('exit', () => clearTimeout(forceKillTimer))
     fmProcess = null
   }
 }
@@ -137,10 +169,7 @@ function createWindow(): void {
     minHeight: 450,
     titleBarStyle: 'hiddenInset',
     trafficLightPosition: { x: 16, y: 13 },
-    vibrancy: 'sidebar', // Native macOS liquid glass effect
-    visualEffectState: 'followWindow',
-    backgroundColor: '#00000000', // Fully transparent to let vibrancy show through
-    transparent: true,
+    backgroundColor: '#FFFFFF',
     icon: path.join(__dirname, process.env.VITE_DEV_SERVER_URL ? '../public/icon.png' : '../dist/icon.png'),
     show: false,
     webPreferences: {
@@ -174,6 +203,7 @@ function createWindow(): void {
 // ── IPC Handlers ────────────────────────────────────────────────────
 ipcMain.handle('get-server-port', () => serverPort)
 ipcMain.handle('get-server-status', () => serverStatus)
+ipcMain.handle('get-models', () => modelStates)
 ipcMain.handle('restart-server', async () => {
   stopFmServe()
   await startFmServe()
@@ -184,28 +214,38 @@ ipcMain.handle('restart-server', async () => {
 // The renderer sends messages via IPC, main process calls fm serve
 // from Node.js (no browser restrictions), and streams tokens back
 // to the renderer via event-based IPC.
-ipcMain.on('chat-stream', async (event, { messages, requestId }) => {
+ipcMain.on('chat-stream', async (event, { messages, requestId, model }) => {
   if (!serverPort) {
     event.sender.send('chat-stream-error', { requestId, error: 'Server not running' })
     return
   }
+  if ((model !== 'system' && model !== 'pcc') || !modelStates[model as ModelId].available) {
+    event.sender.send('chat-stream-error', { requestId, error: 'That model is not available. Choose the on-device model.' })
+    return
+  }
+
+  const controller = new AbortController()
+  activeRequests.set(requestId, controller)
 
   try {
     const response = await fetch(`http://127.0.0.1:${serverPort}/v1/chat/completions`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        model: 'system',
+        model,
         messages,
         stream: true,
       }),
+      signal: controller.signal,
     })
 
     if (!response.ok) {
       const text = await response.text().catch(() => '')
       event.sender.send('chat-stream-error', {
         requestId,
-        error: `Model error (${response.status}): ${text || response.statusText}`,
+        error: model === 'pcc' && response.status === 429
+          ? 'Private Cloud Compute has reached its request limit. Choose On device or try again when the limit resets.'
+          : `Model error (${response.status}): ${text || response.statusText}`,
       })
       return
     }
@@ -241,18 +281,27 @@ ipcMain.on('chat-stream', async (event, { messages, requestId }) => {
 
     event.sender.send('chat-stream-done', { requestId })
   } catch (err: any) {
-    event.sender.send('chat-stream-error', {
-      requestId,
-      error: err.message || 'Failed to fetch',
-    })
+    if (!controller.signal.aborted) {
+      event.sender.send('chat-stream-error', {
+        requestId,
+        error: err.message || 'Failed to fetch',
+      })
+    }
+  } finally {
+    activeRequests.delete(requestId)
   }
+})
+
+ipcMain.on('chat-stream-cancel', (_event, requestId: string) => {
+  activeRequests.get(requestId)?.abort()
 })
 
 // ── App Lifecycle ───────────────────────────────────────────────────
 app.whenReady().then(async () => {
   // macOS 27 (Golden Gate) required for Apple Foundation Models
   const darwinVersion = parseInt(os.release().split('.')[0], 10)
-  if (darwinVersion < 27) {
+  // macOS 27 uses Darwin 26. Checking Darwin 27 rejected supported Macs.
+  if (darwinVersion < 26) {
     dialog.showErrorBox(
       'macOS Update Required',
       'FM Chat requires macOS 27 (Golden Gate) or later to use Apple Foundation Models on-device.'

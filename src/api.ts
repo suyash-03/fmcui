@@ -10,6 +10,9 @@ export interface ChatSession {
   messages: ChatMessage[]
   updatedAt: number
 }
+export type ModelId = 'system' | 'pcc'
+export type ModelState = { available: boolean; reason?: string }
+export type ModelStates = Record<ModelId, ModelState>
 
 // ── Streaming Chat Completions Client ────────────────────────────────
 // Talks to fm serve's OpenAI-compatible /v1/chat/completions endpoint.
@@ -18,18 +21,28 @@ export interface ChatSession {
 export async function* streamChat(
   port: number,
   messages: ChatMessage[],
+  model: ModelId,
   signal?: AbortSignal
 ): AsyncGenerator<string> {
   // If running in Electron, use the IPC bridge to avoid CORS/CSRF
   if (window.fmAPI && window.fmAPI.streamChat) {
     let resolveNext: ((value: IteratorResult<string>) => void) | null = null
-    let rejectNext: ((reason?: any) => void) | null = null
     const buffer: string[] = []
     let isDone = false
     let currentError: Error | null = null
+    let rejectPending: ((reason?: any) => void) | null = null
+    const onAbort = () => {
+      cleanup()
+      currentError = new DOMException('Request stopped', 'AbortError')
+      if (rejectPending) {
+        rejectPending(currentError)
+        rejectPending = null
+      }
+    }
 
     const cleanup = window.fmAPI.streamChat(
       messages,
+      model,
       {
         onToken: (token) => {
           if (resolveNext) {
@@ -48,23 +61,17 @@ export async function* streamChat(
         },
         onError: (errStr) => {
           currentError = new Error(errStr)
-          if (rejectNext) {
-            rejectNext(currentError)
-            rejectNext = null
+          if (rejectPending) {
+            rejectPending(currentError)
+            rejectPending = null
           }
         },
       }
     )
 
     // Handle abort signal
-    if (signal) {
-      signal.addEventListener('abort', () => {
-        cleanup()
-        if (rejectNext) {
-          rejectNext(new Error('AbortError'))
-        }
-      })
-    }
+    signal?.addEventListener('abort', onAbort, { once: true })
+    if (signal?.aborted) onAbort()
 
     try {
       while (true) {
@@ -78,13 +85,14 @@ export async function* streamChat(
           // Wait for next event
           const nextVal = await new Promise<IteratorResult<string>>((resolve, reject) => {
             resolveNext = resolve
-            rejectNext = reject
+            rejectPending = reject
           })
           if (nextVal.done) break
           yield nextVal.value
         }
       }
     } finally {
+      signal?.removeEventListener('abort', onAbort)
       cleanup()
     }
     return
@@ -95,7 +103,7 @@ export async function* streamChat(
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
-      model: 'system',
+      model,
       messages,
       stream: true,
     }),

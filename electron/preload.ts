@@ -10,6 +10,13 @@ contextBridge.exposeInMainWorld('fmAPI', {
 
   getServerStatus: (): Promise<string> =>
     ipcRenderer.invoke('get-server-status'),
+  getModels: (): Promise<Record<string, { available: boolean; reason?: string }>> =>
+    ipcRenderer.invoke('get-models'),
+  onModelsChange: (callback: (models: Record<string, { available: boolean; reason?: string }>) => void): (() => void) => {
+    const handler = (_event: Electron.IpcRendererEvent, models: Record<string, { available: boolean; reason?: string }>) => callback(models)
+    ipcRenderer.on('models-changed', handler)
+    return () => ipcRenderer.removeListener('models-changed', handler)
+  },
 
   restartServer: (): Promise<{ port: number | null; status: string }> =>
     ipcRenderer.invoke('restart-server'),
@@ -25,6 +32,7 @@ contextBridge.exposeInMainWorld('fmAPI', {
   // Stream chat completions via main process (bypasses CORS/CSRF)
   streamChat: (
     messages: Array<{ role: string; content: string }>,
+    model: 'system' | 'pcc',
     callbacks: {
       onToken: (token: string) => void
       onDone: () => void
@@ -54,10 +62,11 @@ contextBridge.exposeInMainWorld('fmAPI', {
     ipcRenderer.on('chat-stream-error', errorHandler)
 
     // Send the request
-    ipcRenderer.send('chat-stream', { messages, requestId })
+    ipcRenderer.send('chat-stream', { messages, model, requestId })
 
     // Return cleanup/abort function
     const cleanup = () => {
+      ipcRenderer.send('chat-stream-cancel', requestId)
       ipcRenderer.removeListener('chat-stream-token', tokenHandler)
       ipcRenderer.removeListener('chat-stream-done', doneHandler)
       ipcRenderer.removeListener('chat-stream-error', errorHandler)

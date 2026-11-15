@@ -2,7 +2,8 @@ import { useRef, useEffect } from 'react'
 import { ChatMessage } from '../api'
 import { MessageBubble } from './MessageBubble'
 import { InputBar } from './InputBar'
-import { WifiOff, AlertCircle } from 'lucide-react'
+import { WifiOff, AlertCircle, Sparkles } from 'lucide-react'
+import { ModelId } from '../api'
 
 interface ChatViewProps {
   messages: ChatMessage[]
@@ -12,13 +13,13 @@ interface ChatViewProps {
   onSend: (content: string) => void
   onStop: () => void
   onRetry: () => void
+  model: ModelId
 }
 
 const EXAMPLE_PROMPTS = [
-  'Explain how Swift concurrency works with async/await',
-  'What are the key differences between structs and classes?',
-  'Write a SwiftUI view that displays a searchable list',
-  'Summarize the benefits of on-device machine learning',
+  'What can you help me with?',
+  'Explain Swift concurrency simply',
+  'Help me write a SwiftUI view',
 ]
 
 export function ChatView({
@@ -29,8 +30,8 @@ export function ChatView({
   onSend,
   onStop,
   onRetry,
+  model,
 }: ChatViewProps) {
-  const messagesEndRef = useRef<HTMLDivElement>(null)
   const containerRef = useRef<HTMLDivElement>(null)
   const isScrolledUpRef = useRef(false)
 
@@ -43,7 +44,8 @@ export function ChatView({
   // Auto-scroll to bottom on new content if not scrolled up
   useEffect(() => {
     if (!isScrolledUpRef.current) {
-      messagesEndRef.current?.scrollIntoView({ behavior: 'auto' })
+      const container = containerRef.current
+      if (container) container.scrollTop = container.scrollHeight
     }
   }, [messages])
 
@@ -58,7 +60,7 @@ export function ChatView({
           <h2 className="connection-error-title">fm not found</h2>
           <p className="connection-error-text">
             Apple Foundation Models CLI isn't available on this system. Make sure
-            you're running macOS 26 or later and have accepted the license agreement.
+            you're running macOS 27 or later and have accepted the license agreement.
           </p>
           <code className="connection-error-code">sudo fm license</code>
           <button className="connection-error-btn" onClick={onRetry}>
@@ -111,19 +113,16 @@ export function ChatView({
       >
         {messages.length === 0 ? (
           <div className="empty-state">
-            <img src="./icon.png" alt="App Icon" className="empty-state-icon-img" />
-            <h1 className="empty-state-title">Apple Foundation Models</h1>
-            <p className="empty-state-subtitle">Running privately on your device</p>
-            <div className="example-prompts">
-              {EXAMPLE_PROMPTS.map((prompt, i) => (
-                <button
-                  key={i}
-                  className="example-prompt"
-                  onClick={() => onSend(prompt)}
-                >
-                  {prompt}
-                </button>
-              ))}
+            <div className="empty-state-intro">
+              <div className="empty-state-mark"><Sparkles size={31} strokeWidth={1.7} /></div>
+              <h1 className="empty-state-title">Ask our AI anything</h1>
+              <p className="empty-state-subtitle">Powered by Apple Foundation Models</p>
+            </div>
+            <div className="suggestions">
+              <p>Suggestions to get started</p>
+              <div className="example-prompts">
+                {EXAMPLE_PROMPTS.map(prompt => <button key={prompt} className="example-prompt" onClick={() => onSend(prompt)} disabled={isStreaming || serverStatus !== 'running'}>{prompt}</button>)}
+              </div>
             </div>
           </div>
         ) : (
@@ -132,7 +131,7 @@ export function ChatView({
               <div className="error-banner">
                 <AlertCircle size={16} />
                 <span>{error}</span>
-                <button onClick={onRetry}>Retry</button>
+                <button onClick={onRetry}>Restart model</button>
               </div>
             )}
             {messages.map((msg, i) => (
@@ -146,7 +145,6 @@ export function ChatView({
                 }
               />
             ))}
-            <div ref={messagesEndRef} />
           </div>
         )}
       </div>
@@ -156,6 +154,7 @@ export function ChatView({
         onStop={onStop}
         isStreaming={isStreaming}
         disabled={serverStatus !== 'running'}
+        model={model}
       />
     </div>
   )

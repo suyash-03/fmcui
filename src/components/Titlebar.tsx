@@ -1,45 +1,29 @@
-import { Plus, Settings } from 'lucide-react'
+import { Plus, Settings2 } from 'lucide-react'
+import { ModelId, ModelStates } from '../api'
 
 interface TitlebarProps {
   serverStatus: string
   onNewChat: () => void
   onToggleSettings: () => void
+  model: ModelId
+  models: ModelStates
+  onModelChange: (model: ModelId) => void
+  busy: boolean
+  title: string
 }
 
-export function Titlebar({ serverStatus, onNewChat, onToggleSettings }: TitlebarProps) {
-  const statusLabel: Record<string, string> = {
-    starting: 'Starting model…',
-    running: 'On-device model',
-    error: 'Connection error',
-    'not-found': 'fm not found',
-  }
-
+export function Titlebar({ serverStatus, onNewChat, onToggleSettings, model, models, onModelChange, busy, title }: TitlebarProps) {
   return (
     <header className="titlebar">
-      <span className="titlebar-title">fmcui</span>
-
-      <div className="titlebar-status">
-        <span className={`titlebar-status-dot ${serverStatus}`} />
-        <span>{statusLabel[serverStatus] ?? 'Unknown'}</span>
-      </div>
-
+      <div className="titlebar-heading" title={title}>{title}</div>
       <div className="titlebar-actions">
-        <button
-          className="titlebar-btn"
-          onClick={onToggleSettings}
-          title="System Instructions"
-          aria-label="Open system instructions"
-        >
-          <Settings size={16} />
-        </button>
-        <button
-          className="titlebar-btn"
-          onClick={onNewChat}
-          title="New Chat"
-          aria-label="Start a new chat"
-        >
-          <Plus size={16} />
-        </button>
+        <span className={`server-indicator ${serverStatus}`} title={serverStatus === 'running' ? 'Model ready' : 'Model is not ready'} aria-label={serverStatus === 'running' ? 'Model ready' : 'Model is not ready'} />
+        <div className="model-switch" role="group" aria-label="Choose model">
+          <button className={model === 'system' ? 'selected' : ''} onClick={() => onModelChange('system')} disabled={busy} aria-pressed={model === 'system'}>On device</button>
+          <span title={models.pcc.reason || 'Private Cloud Compute uses Apple servers and may have a daily limit'}><button className={model === 'pcc' ? 'selected' : ''} onClick={() => onModelChange('pcc')} disabled={busy || !models.pcc.available || serverStatus !== 'running'} aria-label={models.pcc.available ? 'Use Private Cloud Compute' : `Private Cloud Compute unavailable: ${models.pcc.reason}`} aria-pressed={model === 'pcc'}>Private Cloud</button></span>
+        </div>
+        <button className="titlebar-btn" onClick={onToggleSettings} title="System instructions" aria-label="Open system instructions"><Settings2 size={18} /></button>
+        <button className="titlebar-btn titlebar-new" onClick={onNewChat} disabled={busy} title="New chat" aria-label="Start a new chat"><Plus size={19} /></button>
       </div>
     </header>
   )

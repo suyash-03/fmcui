@@ -1,6 +1,6 @@
 import { useState, useCallback } from 'react'
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter'
-import { oneDark } from 'react-syntax-highlighter/dist/esm/styles/prism'
+import { oneLight } from 'react-syntax-highlighter/dist/esm/styles/prism'
 import { Copy, Check } from 'lucide-react'
 
 interface CodeBlockProps {
@@ -40,7 +40,7 @@ export function CodeBlock({ language, code }: CodeBlockProps) {
       </div>
       <SyntaxHighlighter
         language={language || 'text'}
-        style={oneDark}
+        style={oneLight}
         customStyle={{
           margin: 0,
           padding: '14px 16px',
